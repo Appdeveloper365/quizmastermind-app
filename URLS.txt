@@ -1,0 +1,4 @@
+Application URL: https://appdeveloper365.github.io/quizmastermind-app/
+App introduction: https://appdeveloper365.github.io/quizmastermind-app/about.html
+Privacy Policy: https://appdeveloper365.github.io/quizmastermind-app/privacy-policy.html
+Terms of Use: https://appdeveloper365.github.io/quizmastermind-app/terms.html

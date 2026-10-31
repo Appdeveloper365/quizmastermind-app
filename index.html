@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#e0b000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Quiz Mastermind — free AI trivia quiz. Type any subject, get fresh multiple-choice questions with explanations. Runs in your browser with Puter, your own API key, or in-browser WebLLM AI." />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- 1. Preconnect to Hugging Face & GitHub CDNs -->
+  <link rel="preconnect" href="https://huggingface.co" crossorigin="anonymous" />
+  <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin="anonymous" />
+
+  <!-- 2. Modulepreload the WebLLM runtime -->
+  <link rel="modulepreload" href="https://esm.run/@mlc-ai/web-llm" />
+
+  <!-- 3. Prefetch the Model Config & Shard Manifest (Example: Qwen2.5-0.5B) -->
+  <link rel="prefetch" as="fetch" crossorigin="anonymous"
+    href="https://huggingface.co/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main/mlc-chat-config.json" />
+  <link rel="prefetch" as="fetch" crossorigin="anonymous"
+    href="https://huggingface.co/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main/ndarray-cache.json" />
+  <link rel="prefetch" as="fetch" crossorigin="anonymous"
+    href="https://huggingface.co/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main/tokenizer.json" />
+
+  <!-- Security policy: only this origin's code may run or be called. The allowlist covers the AI
+       providers, the model CDN, Puter's own hosts and WebLLM dependencies. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://js.puter.com https://esm.run https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com https://gen.pollinations.ai https://openrouter.ai https://api.x.ai https://api.puter.com https://apps.puter.com https://puter.com https://puter-net.b-cdn.net https://nodejs.puter.site https://puter.site https://puter.work https://unpkg.com https://esm.run https://cdn.jsdelivr.net https://raw.githubusercontent.com https://huggingface.co https://*.huggingface.co https://*.hf.co wss://puter.cafe wss://api.puter.com; worker-src 'self' blob: https://esm.run; frame-src https://puter.com https://*.puter.com https://apps.puter.com https://webgpureport.org; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <style>
+    .header-banner{display:flex;align-items:center;justify-content:space-between;margin:0 0 1rem;padding-bottom:.65rem;border-bottom:1px solid #e5e7eb}
+    .logo-stage{display:flex;flex-direction:row;align-items:center;gap:.85rem;position:relative}
+    .logo-well{width:46px;height:46px;border-radius:10px;padding:0;background:transparent;box-shadow:0 3px 8px rgba(0,0,0,.15);border:2px solid #1e293b;overflow:hidden;flex-shrink:0}
+    .logo-image{width:100%;height:100%;object-fit:cover;display:block}
+    .logo-fallback{width:100%;height:100%;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:#fff;display:flex;align-items:center;justify-content:center}
+    .logo-svg-fallback{width:70%;height:70%;display:block}
+    .logo-title{display:flex;flex-direction:column;justify-content:center}
+    .title-gradient{background:linear-gradient(135deg,#4f46e5,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:1.45rem;font-weight:750;margin:0;line-height:1.2;letter-spacing:-0.02em}
+    .tagline{color:#64748b;font-size:.78rem;margin-top:.15rem;line-height:1.2}
+    .header-badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:600;padding:.25rem .65rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;color:#475569}
+    .header-badge .dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;animation:pulseDot 2s ease-in-out infinite}
+
+    @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.2)}}
+
+    @media (max-width:560px){
+      .logo-well{width:40px;height:40px}
+      .title-gradient{font-size:1.2rem}
+      .tagline{font-size:.7rem}
+      .header-badge{display:none}
+    }
+  </style>
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Quiz Mastermind</title>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body{font-family:system-ui;max-width:1160px;margin:1.5rem auto;padding:max(0.5rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));line-height:1.4}
+    h1{margin:.2rem 0 .6rem}h1 small{font-size:.5em;color:#777;font-weight:400;margin-left:.5rem}
+    button{padding:.6rem 1rem;margin:.25rem 0;width:100%;text-align:left;cursor:pointer;touch-action:manipulation}
+    input:disabled{background:#f1f1f1;color:#777;border-color:#ddd;cursor:not-allowed}
+    button.correct{background:#c8f7c5}button.wrong{background:#f7c5c5}button:disabled{cursor:default}
+    .row{display:flex;gap:.5rem;flex-wrap:wrap}.row>*{flex:1}
+    .row.stack{flex-direction:column;flex-wrap:nowrap}.row.stack>*{flex:0 0 auto}
+    #status{font-size:.9rem;color:#555}#explain{margin-top:1rem;padding:.75rem;background:#f4f4f4;display:none}
+    #config{display:flex;flex-direction:column;gap:.75rem;position:sticky;top:1rem;max-height:calc(100vh - 2rem);overflow-y:auto;padding-right:.15rem}
+    .panel{background:#fafafa;border:1px solid #e5e5e5;border-radius:10px;padding:.75rem}
+    .panel h3{margin:.1rem 0 .5rem;font-size:.95rem}
+    .panel hr{border:0;border-top:1px solid #eee;margin:.9rem 0}
+    label{display:block;margin:.5rem 0;font-size:.9rem}
+    label.inline{display:flex;align-items:center;gap:.35rem;margin:0;flex:0 0 auto;white-space:nowrap}
+    .field{margin:.75rem 0}.field label{display:block;margin-bottom:.25rem}
+    .field input,.field select{width:100%;padding:.5rem;box-sizing:border-box;font-size:16px}
+    .hint{display:block;color:#666;font-size:.8rem;margin-top:.25rem;line-height:1.35}.hint a{color:#0645ad}
+    .small{width:auto;font-size:.8rem;padding:.3rem .6rem}
+    .primary{background:#e0b000;font-weight:700;border:0;border-radius:6px}.primary:hover{background:#f0c020}.primary:disabled{background:#eee;color:#888}
+    code{background:#f2f2f2;padding:.1rem .3rem;border-radius:3px}
+    .cmd{display:flex;gap:.4rem;align-items:center;margin:.3rem 0}.cmd code{flex:1;padding:.4rem .5rem;overflow-x:auto;white-space:nowrap}.cmd button{width:auto;margin:0;padding:.35rem .6rem}
+    #connection{--accent:#e0b000}
+    #connection[data-tab="puter"]{--accent:#0ea5e9}
+    #connection[data-tab="hf"]{--accent:#ff9d00}
+    #connection[data-tab="key"]{--accent:#8b5cf6}
+    #connection[data-tab="local"],#connection[data-tab="webllm"]{--accent:#10b981}
+    .config-pane{border-left:3px solid var(--accent);padding-left:.6rem}
+
+    /* AI tab buttons with distinctive colors, 2x2 compact grid, and actionable arrows */
+    .ai-tabs-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.25rem}
+    .ai-tab{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:.38rem .55rem!important;margin:0!important;border-radius:7px!important;font-weight:600!important;font-size:.82rem!important;cursor:pointer!important;transition:all .15s ease-in-out!important;box-sizing:border-box!important;text-align:left!important;min-width:0!important}
+    .ai-tab .tab-label{display:flex;flex-direction:column;align-items:flex-start;gap:0;min-width:0;overflow:hidden}
+    .ai-tab .tab-label b{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .ai-tab .tab-label small{font-size:.68rem;font-weight:400;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.2}
+    .ai-tab .tab-arrow{display:inline-block;font-size:.78rem;line-height:1;margin-left:.25rem;opacity:.65;transition:transform .15s ease,opacity .15s ease;flex-shrink:0}
+    .ai-tab:hover .tab-arrow{opacity:1;transform:translateX(2px)}
+    .ai-tab.active-tab .tab-arrow,.ai-tab.primary .tab-arrow{opacity:1;font-weight:700;transform:translateX(2px)}
+
+    /* Puter: Sky Blue theme */
+    .tab-puter{background:#f0f9ff!important;border:2px solid #38bdf8!important;color:#0284c7!important}
+    .tab-puter:hover:not(.active-tab):not(.primary){background:#e0f2fe!important;border-color:#0284c7!important}
+    .tab-puter.active-tab,.tab-puter.primary{background:#0284c7!important;border-color:#0369a1!important;color:#fff!important;box-shadow:0 2px 6px rgba(2,132,199,.35)}
+    .tab-puter.active-tab .tab-label small,.tab-puter.primary .tab-label small{color:#e0f2fe}
+
+    /* Hugging Face: Amber/Orange theme */
+    .tab-hf{background:#fffbeb!important;border:2px solid #fbbf24!important;color:#d97706!important}
+    .tab-hf:hover:not(.active-tab):not(.primary){background:#fef3c7!important;border-color:#f59e0b!important}
+    .tab-hf.active-tab,.tab-hf.primary{background:#ea580c!important;border-color:#c2410c!important;color:#fff!important;box-shadow:0 2px 6px rgba(234,88,12,.35)}
+    .tab-hf.active-tab .tab-label small,.tab-hf.primary .tab-label small{color:#ffedd5}
+
+    /* Remote Key: Purple theme */
+    .tab-remote{background:#faf5ff!important;border:2px solid #c084fc!important;color:#7c3aed!important}
+    .tab-remote:hover:not(.active-tab):not(.primary){background:#f3e8ff!important;border-color:#a855f7!important}
+    .tab-remote.active-tab,.tab-remote.primary{background:#7c3aed!important;border-color:#6d28d9!important;color:#fff!important;box-shadow:0 2px 6px rgba(124,58,237,.35)}
+    .tab-remote.active-tab .tab-label small,.tab-remote.primary .tab-label small{color:#ede9fe}
+
+    /* WebLLM: Emerald Green theme */
+    .tab-webllm{background:#ecfdf5!important;border:2px solid #34d399!important;color:#059669!important}
+    .tab-webllm:hover:not(.active-tab):not(.primary){background:#d1fae5!important;border-color:#10b981!important}
+    .tab-webllm.active-tab,.tab-webllm.primary{background:#059669!important;border-color:#047857!important;color:#fff!important;box-shadow:0 2px 6px rgba(5,150,105,.35)}
+    .tab-webllm.active-tab .tab-label small,.tab-webllm.primary .tab-label small{color:#d1fae5}
+
+    /* Sub-provider name tabs (#byokList) in matching 2-column grid with bold 2px lines */
+    #byokList{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.35rem}
+    .byok-tab{font-size:.78rem!important;padding:.32rem .5rem!important}
+    .byok-tab .tab-label b{font-size:.78rem;line-height:1.2;white-space:normal;word-break:break-word}
+    .byok-tab .tab-label small{font-size:.65rem;line-height:1.15}
+
+    .byok-gemini{background:#f0f9ff!important;border:2px solid #38bdf8!important;color:#0284c7!important}
+    .byok-gemini:hover:not(.active-tab):not(.primary){background:#e0f2fe!important;border-color:#0284c7!important}
+    .byok-gemini.active-tab,.byok-gemini.primary{background:#0284c7!important;border-color:#0369a1!important;color:#fff!important;box-shadow:0 2px 6px rgba(2,132,199,.35)}
+    .byok-gemini.active-tab .tab-label small,.byok-gemini.primary .tab-label small{color:#e0f2fe}
+
+    .byok-groq{background:#fff7ed!important;border:2px solid #fb923c!important;color:#c2410c!important}
+    .byok-groq:hover:not(.active-tab):not(.primary){background:#ffedd5!important;border-color:#ea580c!important}
+    .byok-groq.active-tab,.byok-groq.primary{background:#ea580c!important;border-color:#9a3412!important;color:#fff!important;box-shadow:0 2px 6px rgba(234,88,12,.35)}
+    .byok-groq.active-tab .tab-label small,.byok-groq.primary .tab-label small{color:#ffedd5}
+
+    .byok-huggingface{background:#fffbeb!important;border:2px solid #fcd34d!important;color:#d97706!important}
+    .byok-huggingface:hover:not(.active-tab):not(.primary){background:#fef3c7!important;border-color:#f59e0b!important}
+    .byok-huggingface.active-tab,.byok-huggingface.primary{background:#d97706!important;border-color:#b45309!important;color:#fff!important;box-shadow:0 2px 6px rgba(217,119,6,.35)}
+    .byok-huggingface.active-tab .tab-label small,.byok-huggingface.primary .tab-label small{color:#fef3c7}
+
+    .byok-openrouter{background:#eef2ff!important;border:2px solid #818cf8!important;color:#4338ca!important}
+    .byok-openrouter:hover:not(.active-tab):not(.primary){background:#e0e7ff!important;border-color:#6366f1!important}
+    .byok-openrouter.active-tab,.byok-openrouter.primary{background:#4f46e5!important;border-color:#3730a3!important;color:#fff!important;box-shadow:0 2px 6px rgba(79,70,229,.35)}
+    .byok-openrouter.active-tab .tab-label small,.byok-openrouter.primary .tab-label small{color:#e0e7ff}
+
+    .byok-pollinations{background:#f0fdfa!important;border:2px solid #2dd4bf!important;color:#0f766e!important}
+    .byok-pollinations:hover:not(.active-tab):not(.primary){background:#ccfbf1!important;border-color:#0d9488!important}
+    .byok-pollinations.active-tab,.byok-pollinations.primary{background:#0d9488!important;border-color:#115e59!important;color:#fff!important;box-shadow:0 2px 6px rgba(13,148,136,.35)}
+    .byok-pollinations.active-tab .tab-label small,.byok-pollinations.primary .tab-label small{color:#ccfbf1}
+
+    .byok-xai{background:#f8fafc!important;border:2px solid #94a3b8!important;color:#1e293b!important}
+    .byok-xai:hover:not(.active-tab):not(.primary){background:#f1f5f9!important;border-color:#64748b!important}
+    .byok-xai.active-tab,.byok-xai.primary{background:#334155!important;border-color:#0f172a!important;color:#fff!important;box-shadow:0 2px 6px rgba(51,65,85,.35)}
+    .byok-xai.active-tab .tab-label small,.byok-xai.primary .tab-label small{color:#f1f5f9}
+
+    /* Foldable instruction sections */
+    details.hint-fold{margin:.35rem 0 .45rem;border:1px dashed #cbd5e1;border-radius:6px;padding:.25rem .5rem;background:#f8fafc;font-size:.8rem}
+    details.hint-fold summary.hint-toggle{cursor:pointer;user-select:none;color:#475569;font-weight:500;display:flex;align-items:center;justify-content:space-between;list-style:none;outline:none;padding:.15rem 0}
+    details.hint-fold summary.hint-toggle::-webkit-details-marker{display:none}
+    details.hint-fold summary.hint-toggle::after{content:"▸";font-size:.75rem;color:#94a3b8;transition:transform .2s ease}
+    details.hint-fold[open] summary.hint-toggle::after{transform:rotate(90deg)}
+    details.hint-fold small.hint{display:block;margin-top:.3rem;color:#64748b;line-height:1.4;border-top:1px dotted #e2e8f0;padding-top:.3rem}
+    .panel>.hint{margin-top:.4rem}
+    .badge{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.75rem;font-weight:600}
+    .badge.ok{background:#c8f7c5;color:#1b5e20}.badge.off{background:#f7c5c5;color:#b71c1c}.badge.wait{background:#fff3c4;color:#7a5a00}.badge.idle{background:#eef0f2;color:#4b5563}
+    .attention{border:2px solid #e0b000;animation:pulse 1.2s ease-out 5}
+    .start-here{background:#fff3c4;border-left:5px solid #e0b000;padding:.5rem .75rem;margin:.5rem 0 .25rem;font-weight:600}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,176,0,.85)}100%{box-shadow:0 0 0 14px rgba(224,176,0,0)}}
+
+    details.panel summary{cursor:pointer;user-select:none;list-style:none;outline:none}
+    details.panel summary::-webkit-details-marker{display:none}
+    details.panel .chevron{display:inline-block;font-size:.8rem;color:#6b7280;transition:transform .2s ease}
+    details.panel[open] .chevron{transform:rotate(180deg)}
+    .layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:1.25rem;align-items:start}
+    /* Previous questions pile up at the bottom of the question area: each new one grows
+       in from zero height and pushes the older entries down, so they slowly sink out of
+       sight behind this clipped band. Entries are dropped only once fully below it. */
+    #prevStack{position:relative;overflow:hidden;max-height:7.2rem}
+    #prevStack:not(:empty){margin-top:.9rem}
+    #prevStack .oldq{box-sizing:border-box;padding:.45rem .7rem .55rem;border-left:3px solid #d1d5db;border-bottom:1px solid #edf0f2;background:#f9fafb;border-radius:0 6px 6px 0;color:#9ca3af;font-size:.83rem;line-height:1.45}
+    #prevStack .oldq b{color:#6b7280;font-weight:600}
+    #legal{margin-top:1.5rem;padding:.75rem 0;border-top:1px solid #e5e7eb;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1rem;color:#64748b;font-size:.78rem;line-height:1.4}
+    #legal a{color:#475569;font-weight:600;text-decoration:none;transition:color .15s ease}
+    #legal a:hover{color:#0f172a;text-decoration:underline}
+    .legal-links{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}
+    .legal-brand{font-weight:600;color:#1e293b}
+    .legal-disclaimer{color:#94a3b8;font-size:.75rem}
+    #historyList{display:flex;flex-direction:column;gap:.45rem;perspective:600px}
+    .hist{background:#fff;border:1px solid #ddd;border-radius:6px;padding:.45rem .6rem;font-size:.8rem;transform-origin:top center;transition:opacity .7s ease,transform .7s ease,filter .7s ease}
+    .hist.ok{border-left:4px solid #4caf50}.hist.bad{border-left:4px solid #e53935}
+    .hist .q{font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.hist .a{color:#444;margin-top:.15rem}
+    .hist.enter{animation:slideIn .5s ease-out}
+    .hist:nth-child(2){opacity:.85;transform:scale(.97) translateZ(-20px)}.hist:nth-child(3){opacity:.7;transform:scale(.94) translateZ(-40px)}
+    .hist:nth-child(4){opacity:.56;transform:scale(.91) translateZ(-60px)}.hist:nth-child(5){opacity:.44;transform:scale(.88) translateZ(-80px)}
+    .hist:nth-child(6){opacity:.33;transform:scale(.85) translateZ(-100px)}.hist:nth-child(n+7){opacity:.2;transform:scale(.82) translateZ(-120px);filter:blur(.3px)}
+    .hist:hover{opacity:1!important;transform:none!important;filter:none!important}
+    @keyframes slideIn{from{opacity:0;transform:translateY(-16px) scale(1.02)}to{opacity:1;transform:none}}
+    #nextBar{margin-top:.75rem}.bar{height:5px;background:#eee;border-radius:3px;overflow:hidden;margin-top:.3rem}#nextFill{height:100%;width:0;background:#e0b000;transition:width .1s linear}
+    main{display:flex;flex-direction:column}
+    main .field{margin:.1rem 0 .2rem}
+    main #topic{border:2px solid #374151;border-radius:8px;font-weight:600;font-size:1rem;padding:.55rem .85rem;color:#111827;transition:border-color .15s ease,box-shadow .15s ease;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+    main #topic:focus{border-color:#e0b000;outline:2px solid #e0b000;outline-offset:1px}
+    main #topic::placeholder{font-weight:400;color:#9ca3af}
+    main #difficulty{border:2px solid #374151;border-radius:8px;font-weight:600;padding:.55rem .75rem;background:#fff;cursor:pointer;transition:border-color .15s ease}
+    main #difficulty:focus{border-color:#e0b000;outline:2px solid #e0b000;outline-offset:1px}
+    main #start{padding:.6rem 1.25rem;margin:.25rem 0 .2rem;font-size:1rem;font-weight:700;border-radius:8px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.08);transition:all .15s ease}
+    main #start:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 8px rgba(0,0,0,.12)}
+    main #status{font-size:.85rem;color:#555;margin:.15rem 0;min-height:1.15rem}
+    
+    /* Active Question Card */
+    .quiz-card{background:#ffffff;border:1.5px solid #e2e8f0;border-radius:12px;padding:1.15rem 1.25rem;box-shadow:0 4px 14px -2px rgba(0,0,0,.05),0 2px 6px -1px rgba(0,0,0,.03);margin-top:.5rem;transition:all .2s ease}
+    .quiz-card #question{margin:0 0 .75rem;font-size:1.15rem;font-weight:700;line-height:1.4;color:#0f172a}
+    main #options{display:flex;flex-direction:column;gap:.4rem}
+    .option-btn{display:flex;align-items:center;gap:.75rem;margin:0;padding:.6rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:.92rem;line-height:1.4;text-align:left;cursor:pointer;touch-action:manipulation;transition:all .15s ease;box-sizing:border-box}
+    .option-btn:hover:not(:disabled){background:#f1f5f9;border-color:#cbd5e1;transform:translateY(-1px)}
+    .option-btn:focus-visible{outline:2px solid #e0b000;outline-offset:2px}
+    .option-btn .option-check{width:1.2rem;height:1.2rem;margin:0;flex-shrink:0;cursor:pointer;accent-color:#2563eb}
+    .option-btn .option-text{flex:1}
+    .option-btn.correct{background:#dcfce7!important;border-color:#22c55e!important;color:#14532d!important;font-weight:600}
+    .option-btn.correct .option-check{accent-color:#16a34a}
+    .option-btn.wrong{background:#fee2e2!important;border-color:#ef4444!important;color:#7f1d1d!important}
+    .option-btn.wrong .option-check{accent-color:#dc2626}
+    .option-btn:disabled{cursor:default}
+    .option-btn:disabled .option-check{cursor:default}
+
+    /* Polished feedback alert */
+    .explain-box{margin-top:.65rem;padding:.65rem .85rem;border-radius:8px;font-size:.88rem;line-height:1.45;display:none;border:1px solid transparent;transition:all .2s ease}
+    .explain-box.explain-correct{background:#f0fdf4;border-color:#bbf7d0;border-left:4px solid #16a34a;color:#14532d}
+    .explain-box.explain-wrong{background:#fef2f2;border-color:#fecaca;border-left:4px solid #ef4444;color:#7f1d1d}
+
+    /* Gamified stats dashboard pill bar */
+    .stats-bar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.5rem 0 .2rem}
+    .stat-pill{display:inline-flex;align-items:center;gap:.3rem;background:#f8fafc;border:1px solid #e2e8f0;padding:.22rem .6rem;border-radius:999px;font-size:.78rem;color:#475569;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+    .stat-pill b{color:#0f172a;font-weight:600}
+    .stat-pill .stat-icon{font-size:.85rem}
+
+    /* Compact action grids in provider panes */
+    .pane-actions{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.4rem}
+    .pane-actions button{margin:0!important;padding:.42rem .6rem!important;font-size:.82rem!important;text-align:center!important;border-radius:6px!important;box-sizing:border-box!important}
+    .action-grid-2x2{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.4rem}
+    .action-grid-2x2 button{margin:0!important;padding:.42rem .6rem!important;font-size:.82rem!important;text-align:center!important;border-radius:6px!important;box-sizing:border-box!important}
+
+    main #nextBar{margin-top:.45rem}
+    main #prevStack{margin-top:.5rem;max-height:6rem}
+    .quiz-prefs{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.4rem 1rem;align-items:center;margin:.2rem 0 .25rem;padding:.35rem .6rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:.82rem}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}#config{position:static;max-height:none;overflow:visible}#historyList{flex-direction:row;overflow-x:auto;padding-bottom:.25rem}.hist{min-width:210px;max-width:210px;transform-origin:left center}}
+  </style>
+  <script type="module" crossorigin src="/quizmastermind-app/assets/index-C25ehMpJ.js"></script>
+</head>
+<body>
+  <!-- App Header Banner -->
+  <header class="header-banner">
+    <div class="logo-stage select-none">
+      <div class="logo-well">
+        <img
+          src="./app_logo.png?v=2"
+          alt="Quiz Mastermind app logo"
+          class="logo-image"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+        />
+        <div class="logo-fallback" style="display:none">
+          <svg class="logo-svg-fallback" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-label="Quiz Mastermind app logo fallback">
+            <rect x="4" y="4" width="212" height="212" rx="44" fill="#172554"/>
+            <text x="110" y="114" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="#f7d97e" text-anchor="middle" letter-spacing="1">QM</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="logo-title">
+        <h1 class="title-gradient">Quiz Mastermind</h1>
+        <p class="tagline">AI-powered trivia • Einstein is hosting</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      <span class="dot"></span>
+      <span>Live AI Trivia</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="config">
+      <section id="connection" class="panel" data-tab="puter">
+        <h3>🧠 AI connection</h3>
+        <div class="field" style="margin:0">
+          <div class="ai-tabs-grid">
+            <button id="selPuter" class="ai-tab tab-puter primary">
+              <span class="tab-label"><b>☁️ Puter</b><small id="selPuterSub" style="font-weight:400"></small></span>
+              <span class="tab-arrow">▸</span>
+            </button>
+            <button id="selHf" class="ai-tab tab-hf">
+              <span class="tab-label"><b>🤗 Hugging Face</b><small id="selHfSub" style="font-weight:400"></small></span>
+              <span class="tab-arrow">▸</span>
+            </button>
+            <button id="selRemote" class="ai-tab tab-remote">
+              <span class="tab-label"><b>🔑 API Key</b><small id="selRemoteSub" style="font-weight:400"></small></span>
+              <span class="tab-arrow">▸</span>
+            </button>
+            <button id="selWebllm" class="ai-tab tab-webllm">
+              <span class="tab-label"><b>🌐 WebLLM</b><small id="selWebllmSub" style="font-weight:400"></small></span>
+              <span class="tab-arrow">▸</span>
+            </button>
+          </div>
+          <div id="byokList" style="margin-top:.35rem"></div>
+          <small class="hint" id="providerNote"></small>
+        </div>
+        <hr />
+
+        <!-- ---------- PUTER ---------- -->
+        <section id="pane-puter" class="config-pane">
+          <p style="margin:.2rem 0 .4rem">Status: <span id="puterBadge" class="badge wait">checking…</span> <button id="puterRecheck" class="small">Re-check</button></p>
+          <details class="hint-fold">
+            <summary class="hint-toggle">ℹ️ How Puter sign-in & status work</summary>
+            <small class="hint">Puter provides direct cloud AI on <b>your own</b> Puter account (the “user-pays” model — no API key for you to manage, and the developer pays nothing). Direct sign in with a Puter account; sign-up takes seconds and one account works across every Puter app.</small>
+          </details>
+          <div class="pane-actions">
+            <button id="puterSignIn" class="primary">Sign in with Puter</button>
+            <button id="puterTest">🔌 Test connection</button>
+          </div>
+          <div style="margin-top:.35rem">
+            <button id="puterSignOut" class="small" style="text-align:center">Sign out</button>
+          </div>
+          <small class="hint" id="puterUser"></small>
+          <small class="hint" id="puterTestResult"></small>
+          <details class="hint-fold">
+            <summary class="hint-toggle">ℹ️ Connection instructions</summary>
+            <small class="hint">No model to pick — Puter chooses one automatically on their end. All this app needs is for Puter to <b>recognize the connection</b>: sign in, then press <b>Test connection</b>. (If you skip signing in here, Puter pops its own sign-in on the first question.)</small>
+          </details>
+        </section>
+
+        <!-- ---------- HUGGING FACE ---------- -->
+        <section id="pane-hf" class="config-pane" hidden>
+          <p style="margin:.2rem 0 .4rem">Status: <span id="hfBadge" class="badge off">not connected</span> <button id="hfRecheck" class="small">Re-check</button></p>
+          <details class="hint-fold">
+            <summary class="hint-toggle">ℹ️ How Hugging Face sign-in & credits work</summary>
+            <small class="hint">Hugging Face provides direct AI inference on your own account via <b>1-click OAuth PKCE</b>. Direct sign-in works if you have enough credit in your Hugging Face account (or HF PRO plan included credits).</small>
+          </details>
+          <div class="pane-actions">
+            <button id="hfSignIn" class="primary">🤗 Sign in HF</button>
+            <button id="hfTest">🔌 Test connection</button>
+          </div>
+          <div style="margin-top:.35rem">
+            <button id="hfSignOut" class="small" hidden style="text-align:center">Sign out</button>
+          </div>
+          <small class="hint" id="hfUser"></small>
+          <small class="hint" id="hfTestResult"></small>
+          <details class="hint-fold">
+            <summary class="hint-toggle">ℹ️ Model & billing instructions</summary>
+            <small class="hint">Running <b>Qwen 2.5 72B Instruct</b> (with Llama 3.3 70B fallback). Billed directly to your Hugging Face account.</small>
+          </details>
+        </section>
+
+        <!-- ---------- REMOTE KEY ---------- -->
+        <section id="pane-key" class="config-pane" hidden>
+          <div class="field">
+            <label for="byokProvider"><b>Provider</b></label>
+            <select id="byokProvider"></select>
+            <details class="hint-fold">
+              <summary class="hint-toggle">ℹ️ Where to get free API keys</summary>
+              <small class="hint" id="portalHint"></small>
+            </details>
+          </div>
+          <!-- OAuth PKCE 1-Click Sign-in for Supported Providers -->
+          <div id="oauthSection" style="margin:.6rem 0;padding:.65rem;border-radius:.5rem;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25)" hidden>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem">
+              <span style="font-weight:600;font-size:.85rem;color:#818cf8" id="oauthTitle">⚡ Sign in with OpenRouter (OAuth PKCE)</span>
+              <span class="badge ok" id="oauthStatusBadge" hidden>Connected</span>
+            </div>
+            <small class="hint" id="oauthDescription">Sign in securely with zero copy-pasting. Inferences are billed directly to your own account.</small>
+            <div class="pane-actions" style="margin-top:.4rem">
+              <button id="oauthConnectBtn" class="primary">⚡ Connect</button>
+              <button id="oauthDisconnectBtn" class="small" hidden>Disconnect</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="keyInput"><b>Paste your API key</b></label>
+            <input id="keyInput" type="password" autocomplete="off" placeholder="AIza..." />
+            <small class="hint" id="keyFieldHint"></small>
+          </div>
+          <div class="action-grid-2x2">
+            <button id="saveClose" class="primary">💾 Save key</button>
+            <button id="replaceKey" hidden>✏️ Replace key</button>
+            <button id="testKey">🔌 Test connection</button>
+            <button id="clearKey">🗑 Clear key</button>
+          </div>
+          <small class="hint" id="testResult"></small>
+          <label class="inline"><input type="checkbox" id="noPersist" /> 🧹 Don't save keys on this device (held in memory for this tab only)</label>
+          <details class="hint-fold">
+            <summary class="hint-toggle">ℹ️ Key storage & privacy instructions</summary>
+            <small class="hint" id="noPersistHint">Keys stay encrypted on this device by default; tick this to keep them in memory only, so closing the tab forgets them entirely.</small>
+          </details>
+        </section>
+
+        <!-- ---------- WEBLLM (IN-BROWSER AI) ---------- -->
+        <section id="pane-webllm" class="config-pane" hidden>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem">
+            <label style="margin:0"><b>🌐 Run AI in this browser (WebLLM)</b> — no install, no key, no account</label>
+            <span id="webllmBadge" class="badge idle">idle</span>
+          </div>
+          <details class="hint-fold">
+            <summary class="hint-toggle">ℹ️ How in-browser WebLLM works</summary>
+            <small class="hint" id="webllmHint">Runs an AI model entirely inside your browser using WebGPU. It downloads automatically in the background on page load and caches persistently on this device for instant offline startup.</small>
+          </details>
+          <div class="field" id="webllmConfig" style="margin-top:.5rem">
+            <label for="webllmModel"><b>In-browser Model</b></label>
+            <select id="webllmModel"></select>
+          </div>
+          <div class="field" id="webllmDownload" hidden>
+            <label for="webllmMeter"><b>⬇️ Downloading & caching model weights…</b></label>
+            <progress id="webllmMeter" max="100" value="0" style="width:100%"></progress>
+            <small class="hint" id="webllmMeterLabel"></small>
+          </div>
+          <div class="pane-actions" id="webllmButtons" style="margin-top:.4rem">
+            <button id="webllmEnable" class="primary">⬇️ Download / Preload</button>
+            <button id="webllmClear" class="small">🗑 Clear Cache</button>
+          </div>
+          <small class="hint" id="webllmStatus" style="margin-top:.4rem;display:block"></small>
+        </section>
+
+        <hr />
+        <button id="wipeKeys" class="small">🗑 Wipe all saved keys</button>
+        <small class="hint" id="keySummary"></small>
+      </section>
+
+      <!-- ---------- RECENT ANSWERS ---------- -->
+      <details class="panel" id="panel-recent">
+        <summary style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-weight:600;display:flex;align-items:center;gap:.35rem">🕘 Recent answers</span>
+          <span class="chevron" aria-hidden="true">▼</span>
+        </summary>
+        <div style="margin-top:.6rem">
+          <div id="historyList"></div>
+          <button id="clearRecent" class="small" style="margin-top:.5rem">Clear list</button>
+          <button id="installBtn" class="small" hidden style="margin-top:.4rem">📲 Install as app (PWA)</button>
+        </div>
+      </details>
+
+      <!-- ---------- SETTINGS & LEGAL COMPLIANCE ---------- -->
+      <details class="panel" id="panel-settings">
+        <summary style="display:flex;align-items:center;justify-content:space-between">
+          <span style="margin:0;display:flex;align-items:center;gap:.35rem;font-weight:600">⚙️ Settings & Legal</span>
+          <div style="display:flex;align-items:center;gap:.4rem">
+            <span class="badge idle" style="font-size:.7rem">v1.1</span>
+            <span class="chevron" aria-hidden="true">▼</span>
+          </div>
+        </summary>
+        <div style="margin-top:.6rem">
+          <p class="hint" style="margin:0 0 .5rem">Review terms, privacy practices, licensing, and architectural specifications.</p>
+          <div class="row stack" style="gap:.35rem">
+            <button id="btnAbout" class="small" style="text-align:left;display:flex;align-items:center;justify-content:space-between">
+              <span>📖 App Introduction</span>
+              <span style="opacity:.6">↗</span>
+            </button>
+            <button id="btnTerms" class="small" style="text-align:left;display:flex;align-items:center;justify-content:space-between">
+              <span>📜 Terms of Use & EULA</span>
+              <span style="opacity:.6">↗</span>
+            </button>
+            <button id="btnPrivacy" class="small" style="text-align:left;display:flex;align-items:center;justify-content:space-between">
+              <span>🔒 Privacy Policy</span>
+              <span style="opacity:.6">↗</span>
+            </button>
+            <button id="btnLicense" class="small" style="text-align:left;display:flex;align-items:center;justify-content:space-between">
+              <span>⚖️ Legal Notices & License</span>
+              <span style="opacity:.6">↗</span>
+            </button>
+          </div>
+        </div>
+      </details>
+    </aside>
+
+    <main>
+      <div class="field" style="margin:.15rem 0 .35rem">
+        <div class="row">
+          <input id="topic" placeholder="Type your subject — e.g. Ancient Egypt, Python basics, 90s pop music" />
+          <select id="difficulty" style="max-width:140px"><option>easy</option><option selected>medium</option><option>hard</option></select>
+        </div>
+        <details class="hint-fold" style="margin-top:.25rem">
+          <summary class="hint-toggle">💡 How subjects & questions work</summary>
+          <small class="hint">Type any subject and press <b>Start</b> — the AI writes a <b>fresh question every time</b>. Answered questions are remembered on this device so nothing repeats, even after you reopen the app.</small>
+        </details>
+      </div>
+
+      <details class="hint-fold" style="margin:.2rem 0 .35rem">
+        <summary class="hint-toggle">⚙️ Gameplay options & instructions</summary>
+        <div style="padding-top:.35rem">
+          <small class="hint" style="margin:0 0 .4rem;display:block">Press <b>▶ Start / Next question</b> to write a fresh question. Answered questions are saved locally so nothing repeats.</small>
+          <div class="quiz-prefs" style="margin:0;background:#fff">
+            <button id="resetHistory" class="small" style="width:auto;margin:0;padding:.3rem .6rem" title="Clears saved questions and seen history for the current subject">🔄 Forget what I've seen for the current subject</button>
+            <div style="display:flex;flex-wrap:wrap;gap:.35rem 1rem;align-items:center">
+              <label class="inline" style="cursor:pointer;margin:0"><input type="checkbox" id="autoForgetPref" checked /> 🔄 Auto-forget every 2 questions</label>
+              <label class="inline" style="cursor:pointer;margin:0"><input type="checkbox" id="autoNextPref" /> ⏭ Auto-advance to the next question</label>
+              <label class="inline" style="cursor:pointer;margin:0"><input type="checkbox" id="reuse" /> ♻️ Reuse saved questions first</label>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <button id="start" class="primary">▶ Start / Next question</button>
+      <p id="status"></p>
+
+      <div id="quizCard" class="quiz-card" style="display:none">
+        <h2 id="question"></h2>
+        <div id="options"></div>
+        <div id="explain" class="explain-box"></div>
+        <div id="nextBar" hidden>
+          <div class="row" style="align-items:center">
+            <button id="nextBtn" class="primary" disabled>⏳ Generating your next question…</button>
+            <label class="inline"><input type="checkbox" id="autoNext" /> Auto-advance</label>
+          </div>
+          <div class="bar"><div id="nextFill"></div></div>
+        </div>
+      </div>
+
+      <div id="stats" class="stats-bar"></div>
+      <div id="prevStack" aria-hidden="true"></div>
+    </main>
+  </div>
+
+  <footer id="legal">
+    <div class="legal-links">
+      <span class="legal-brand">Quiz Mastermind</span> ·
+      <a href="about.html">About</a> ·
+      <a href="privacy-policy.html">Privacy</a> ·
+      <a href="terms.html">Terms</a> ·
+      <a href="license.html">License</a> ·
+      <a href="https://github.com/appdeveloper365/quizmastermind" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <div class="legal-disclaimer">
+      Questions are AI-generated and can be wrong — check anything that matters.
+    </div>
+  </footer>
+
+</body>
+</html>
