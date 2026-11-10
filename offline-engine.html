@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Optimized viewport: supports safe areas, removes accessibility-blocking scale locks -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  
+  <title>Offline AI Quiz Engine (Mobile & Desktop Diagnostic)</title>
+
+  <!-- Preconnect & Prefetch Links for Instant Boot -->
+  <link rel="preconnect" href="https://huggingface.co" crossorigin="anonymous" />
+  <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin="anonymous" />
+  <link rel="preconnect" href="https://esm.run" crossorigin="anonymous" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous" />
+
+  <!-- Prefetch Lightweight SmolLM2-360M (Mobile Safe) Config & Manifest -->
+  <link rel="prefetch" as="fetch" crossorigin="anonymous"
+    href="https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC/resolve/main/mlc-chat-config.json" />
+  <link rel="prefetch" as="fetch" crossorigin="anonymous"
+    href="https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC/resolve/main/ndarray-cache.json" />
+  <link rel="prefetch" as="fetch" crossorigin="anonymous"
+    href="https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC/resolve/main/tokenizer.json" />
+
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warn: #eab308;
+      --danger: #ef4444;
+    }
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      margin: 0;
+      /* Respect iOS Dynamic Island, Notch, and Android gesture navigation bars */
+      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      text-size-adjust: 100%;
+      -webkit-text-size-adjust: 100%;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    h1 { font-size: 1.15rem; margin: 0; }
+    h2 { font-size: 0.95rem; margin: 0 0 8px 0; }
+    .pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #1e293b;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .progress-track {
+      background: #1f2937;
+      height: 8px;
+      border-radius: 99px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-fill {
+      background: linear-gradient(90deg, #3b82f6, #38bdf8);
+      height: 100%;
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px; /* Apple HIG minimum touch target */
+      touch-action: manipulation;
+      transition: opacity 0.15s, background 0.15s;
+    }
+    button:active { filter: brightness(0.9); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: #1f2937; color: #e5e7eb; }
+    button.danger { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid #7f1d1d; }
+    
+    /* 16px font-size prevents iOS Safari from automatically zooming into inputs on focus */
+    input, select {
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 16px;
+      width: 100%;
+      min-height: 44px;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    @media (min-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr 140px auto;
+      }
+    }
+
+    .model-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-radius: 10px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .model-item.active { border-color: var(--accent); }
+    .option-btn {
+      width: 100%;
+      text-align: left;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 10px;
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      min-height: 48px;
+      touch-action: manipulation;
+    }
+    .option-btn.correct { border-color: var(--success); background: rgba(34, 197, 94, 0.18); }
+    .option-btn.wrong { border-color: var(--danger); background: rgba(239, 68, 68, 0.18); }
+    .banner {
+      font-size: 12px;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+    a.back-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    a.back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 4px;">
+      <a href="./index.html" class="back-link">← Return to Quiz Mastermind</a>
+    </div>
+
+    <!-- HEADER -->
+    <div class="card">
+      <div class="row">
+        <div>
+          <h1>Offline AI Engine & Diagnostic</h1>
+          <div style="font-size: 12px; color: var(--muted);">
+            WebLLM (WebGPU) + Transformers.js v3 (WASM q4 Mobile Fallback)
+          </div>
+        </div>
+        <div class="row">
+          <span id="coi-pill" class="pill">COOP/COEP: Checking...</span>
+        </div>
+      </div>
+      <div id="live-progress" class="banner" style="display:none;"></div>
+    </div>
+
+    <!-- QUIZ GENERATOR CARD -->
+    <div class="card">
+      <h2>Diagnostic Question Generator</h2>
+      <div class="form-grid">
+        <input id="quiz-topic" type="text" placeholder="Topic (e.g. JavaScript, Cellular Biology)" value="JavaScript Promises" />
+        <select id="quiz-difficulty">
+          <option value="easy">Easy (Recall)</option>
+          <option value="medium" selected>Medium (Apply)</option>
+          <option value="hard">Hard (Analyze)</option>
+        </select>
+        <button id="generate-btn">Generate</button>
+      </div>
+
+      <!-- Quiz Output Area -->
+      <div id="quiz-output" style="display:none; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+        <div id="quiz-question" style="font-weight:600; font-size:15px; margin-bottom:10px;"></div>
+        <div id="quiz-options"></div>
+        <div id="quiz-feedback" style="display:none; margin-top:12px; font-size:13px; padding:12px; border-radius:8px; background:#0f172a;"></div>
+      </div>
+    </div>
+
+    <!-- STORAGE & OFFLINE CACHE MANAGER CARD -->
+    <div class="card">
+      <div class="row">
+        <h2>Offline Model Shard Manager</h2>
+        <span id="persist-pill" class="pill">Storage Check...</span>
+      </div>
+
+      <div class="progress-track">
+        <div id="storage-bar" class="progress-fill"></div>
+      </div>
+
+      <div class="row" style="font-size:12px; color:var(--muted); margin-bottom:12px;">
+        <span id="storage-stats-text">0 MB used</span>
+        <span id="active-engine-text">Engine: Probing hardware...</span>
+      </div>
+
+      <div id="model-list"></div>
+
+      <div class="row" style="margin-top:10px; justify-content:flex-end;">
+        <button id="purge-all-btn" class="danger" style="min-height:36px; padding:6px 12px; font-size:12px;">
+          Purge Cached Models
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    let wakeLockSentinel = null;
+    async function acquireWakeLock() {
+      if ("wakeLock" in navigator && !wakeLockSentinel) {
+        try {
+          wakeLockSentinel = await navigator.wakeLock.request("screen");
+          wakeLockSentinel.addEventListener("release", () => { wakeLockSentinel = null; });
+        } catch {}
+      }
+    }
+    function releaseWakeLock() {
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+    }
+
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const isMobile = isIOS || /Android/i.test(ua);
+
+    const MODEL_CATALOG = [
+      {
+        id: "smollm2-360m",
+        label: "SmolLM2 360M (Mobile & iOS Safe)",
+        estSizeMB: 210,
+        webllmF16: "SmolLM2-360M-Instruct-q4f16_1-MLC",
+        webllmF32: "SmolLM2-360M-Instruct-q4f32_1-MLC",
+        wasmId: "HuggingFaceTB/SmolLM2-360M-Instruct",
+      },
+      {
+        id: "qwen25-05b",
+        label: "Qwen 2.5 0.5B (Fast Default)",
+        estSizeMB: 390,
+        webllmF16: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+        webllmF32: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC",
+        wasmId: "onnx-community/Qwen2.5-0.5B-Instruct",
+      },
+      {
+        id: "qwen25-15b",
+        label: "Qwen 2.5 1.5B (Desktop / High RAM)",
+        estSizeMB: 980,
+        webllmF16: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+        webllmF32: "Qwen2.5-1.5B-Instruct-q4f32_1-MLC",
+        wasmId: "onnx-community/Qwen2.5-1.5B-Instruct",
+      },
+    ];
+
+    class LLMStorageManager {
+      static async getStorageStats() {
+        let usageBytes = 0, quotaBytes = 0, isPersisted = false;
+        if (navigator.storage?.estimate) {
+          const est = await navigator.storage.estimate().catch(() => ({}));
+          usageBytes = est.usage || 0;
+          quotaBytes = est.quota || 0;
+        }
+        if (navigator.storage?.persisted) {
+          isPersisted = await navigator.storage.persisted().catch(() => false);
+        }
+        const usageMB = +(usageBytes / (1024 * 1024)).toFixed(1);
+        const quotaMB = +(quotaBytes / (1024 * 1024)).toFixed(0);
+        const percentUsed = quotaBytes > 0 ? +((usageBytes / quotaBytes) * 100).toFixed(1) : 0;
+        return { usageMB, quotaMB, percentUsed, isPersisted };
+      }
+
+      static async verifyModelOfflineReady(catalogEntry, activeBackend, hasF16) {
+        if (!("caches" in window)) return { ready: false, cachedShards: 0, totalShards: 0 };
+        const targetModelId = hasF16 ? catalogEntry.webllmF16 : catalogEntry.webllmF32;
+
+        if (activeBackend === "webllm-webgpu") {
+          try {
+            const modelCache = await caches.open("webllm/model");
+            const keys = await modelCache.keys();
+            const modelRequests = keys.filter((req) => req.url.includes(targetModelId));
+            const manifestReq = modelRequests.find((req) => req.url.endsWith("ndarray-cache.json"));
+            if (!manifestReq) return { ready: false, cachedShards: 0, totalShards: 0 };
+
+            const manifestRes = await modelCache.match(manifestReq);
+            const manifest = await manifestRes.json();
+            const totalShards = manifest.records?.length || 0;
+
+            let cachedShards = 0;
+            for (const rec of manifest.records || []) {
+              if (modelRequests.some((req) => req.url.endsWith(rec.dataPath))) cachedShards++;
+            }
+            return { ready: totalShards > 0 && cachedShards === totalShards, cachedShards, totalShards };
+          } catch {
+            return { ready: false, cachedShards: 0, totalShards: 0 };
+          }
+        }
+
+        try {
+          const tfCache = await caches.open("transformers-cache");
+          const keys = await tfCache.keys();
+          const modelFiles = keys.filter((req) => req.url.includes(catalogEntry.wasmId));
+          const hasTokenizer = modelFiles.some((r) => r.url.includes("tokenizer.json"));
+          const hasConfig = modelFiles.some((r) => r.url.includes("config.json"));
+          const hasOnnx = modelFiles.some((r) => r.url.endsWith(".onnx") || r.url.endsWith(".onnx_data"));
+          const ready = hasTokenizer && hasConfig && hasOnnx;
+          return { ready, cachedShards: modelFiles.length, totalShards: ready ? modelFiles.length : 4 };
+        } catch {
+          return { ready: false, cachedShards: 0, totalShards: 0 };
+        }
+      }
+
+      static async deleteModel(catalogEntry) {
+        const patterns = [catalogEntry.webllmF16, catalogEntry.webllmF32, catalogEntry.wasmId].filter(Boolean);
+        try {
+          const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+          await webllm.deleteModelAllInfoInCache(catalogEntry.webllmF16, webllm.prebuiltAppConfig).catch(() => {});
+          await webllm.deleteModelAllInfoInCache(catalogEntry.webllmF32, webllm.prebuiltAppConfig).catch(() => {});
+        } catch {}
+
+        for (const name of ["webllm/model", "webllm/config", "webllm/wasm", "transformers-cache"]) {
+          const cache = await caches.open(name);
+          const reqs = await cache.keys();
+          for (const req of reqs) {
+            if (patterns.some((p) => req.url.includes(p))) await cache.delete(req);
+          }
+        }
+      }
+
+      static async clearAllModels() {
+        await Promise.all(["webllm/model", "webllm/config", "webllm/wasm", "transformers-cache"].map((n) => caches.delete(n)));
+        if (indexedDB?.databases) {
+          const dbs = await indexedDB.databases().catch(() => []);
+          for (const db of dbs) {
+            if (db.name?.includes("webllm")) indexedDB.deleteDatabase(db.name);
+          }
+        }
+      }
+    }
+
+    class UnifiedBrowserLLM {
+      constructor(options = {}) {
+        this.onProgress = options.onProgress || (() => {});
+        this.backend = null;
+        this.engine = null;
+        this.wasmWorker = null;
+        this.initPromise = null;
+        this.gpuProbeCache = null;
+
+        this.webllmModelF16 = options.webllmModelF16;
+        this.webllmModelF32 = options.webllmModelF32;
+        this.wasmModelId = options.wasmModelId;
+      }
+
+      async probeWebGPU() {
+        if (this.gpuProbeCache) return this.gpuProbeCache;
+        if (typeof navigator === "undefined" || !navigator.gpu) {
+          return (this.gpuProbeCache = { supported: false, hasF16: false });
+        }
+        try {
+          let adapter = await navigator.gpu.requestAdapter({ powerPreference: "low-power" });
+          if (!adapter) adapter = await navigator.gpu.requestAdapter();
+          if (!adapter) return (this.gpuProbeCache = { supported: false, hasF16: false });
+
+          const hasF16 = Boolean(adapter.features?.has("shader-f16"));
+          const device = await adapter.requestDevice();
+          device.destroy();
+          return (this.gpuProbeCache = { supported: true, hasF16 });
+        } catch {
+          return (this.gpuProbeCache = { supported: false, hasF16: false });
+        }
+      }
+
+      async init() {
+        if (this.initPromise) return this.initPromise;
+        this.initPromise = (async () => {
+          if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
+          const gpu = await this.probeWebGPU();
+
+          if (gpu.supported) {
+            try {
+              await this._initWebLLM(gpu.hasF16);
+              this.backend = "webllm-webgpu";
+              return this;
+            } catch (err) {
+              console.warn("[UnifiedLLM] WebGPU init failed, falling back to WASM:", err);
+            }
+          }
+          await this._initTransformersWASM();
+          this.backend = "transformers-wasm";
+          return this;
+        })();
+        return this.initPromise;
+      }
+
+      async _initWebLLM(hasF16) {
+        const { CreateWebWorkerMLCEngine, prebuiltAppConfig } = await import("https://esm.run/@mlc-ai/web-llm");
+        const targetModel = hasF16 ? this.webllmModelF16 : this.webllmModelF32;
+
+        const workerCode = `
+          import { WebWorkerMLCEngineHandler } from "https://esm.run/@mlc-ai/web-llm";
+          const handler = new WebWorkerMLCEngineHandler();
+          self.onmessage = (msg) => handler.onmessage(msg);
+        `;
+        const worker = new Worker(
+          URL.createObjectURL(new Blob([workerCode], { type: "application/javascript" })),
+          { type: "module" }
+        );
+
+        this.engine = await CreateWebWorkerMLCEngine(
+          worker,
+          targetModel,
+          {
+            appConfig: { ...prebuiltAppConfig, useIndexedDBCache: isIOS },
+            initProgressCallback: (report) => {
+              this.onProgress({
+                backend: "webllm-webgpu",
+                progress: Math.round((report.progress || 0) * 100),
+                text: report.text || "Loading WebGPU shards...",
+              });
+            },
+          },
+          {
+            context_window_size: isMobile ? 768 : 2048,
+            sliding_window_size: -1,
+            attention_sink_size: -1,
+          }
+        );
+      }
+
+      async _initTransformersWASM() {
+        const workerCode = `
+          import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3";
+          env.allowLocalModels = false;
+          env.useBrowserCache = true;
+          if (env.backends?.onnx?.wasm) {
+            env.backends.onnx.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3/dist/";
+            const isIsolated = self.crossOriginIsolated === true;
+            env.backends.onnx.wasm.numThreads = isIsolated
+              ? Math.min(2, Math.max(1, (navigator.hardwareConcurrency || 2) - 1))
+              : 1;
+            env.backends.onnx.wasm.simd = true;
+          }
+          let generator = null;
+          self.onmessage = async (e) => {
+            const { type, payload, id } = e.data;
+            try {
+              if (type === "INIT") {
+                generator = await pipeline("text-generation", payload.modelId, {
+                  device: "wasm",
+                  dtype: "q4",
+                  progress_callback: (info) => {
+                    if (info.status === "progress") {
+                      self.postMessage({
+                        type: "PROGRESS",
+                        progress: Math.round(info.progress || 0),
+                        text: \`Caching WASM (\${info.file}): \${Math.round(info.progress || 0)}%\`
+                      });
+                    }
+                  }
+                });
+                self.postMessage({ id, type: "INIT_DONE" });
+              }
+              if (type === "GENERATE") {
+                const out = await generator(payload.messages, {
+                  max_new_tokens: payload.max_tokens || 300,
+                  temperature: payload.temperature ?? 0.3,
+                  do_sample: (payload.temperature ?? 0.3) > 0,
+                  return_full_text: false,
+                });
+                self.postMessage({ id, type: "GENERATE_DONE", text: out[0]?.generated_text || "" });
+              }
+            } catch (err) {
+              self.postMessage({ id, type: "ERROR", error: err.message });
+            }
+          };
+        `;
+
+        this.wasmWorker = new Worker(
+          URL.createObjectURL(new Blob([workerCode], { type: "application/javascript" })),
+          { type: "module" }
+        );
+
+        this.wasmWorker.addEventListener("message", (e) => {
+          if (e.data.type === "PROGRESS") {
+            this.onProgress({
+              backend: "transformers-wasm",
+              progress: e.data.progress,
+              text: e.data.text,
+            });
+          }
+        });
+
+        await this._postToWasmWorker("INIT", { modelId: this.wasmModelId });
+      }
+
+      _postToWasmWorker(type, payload) {
+        return new Promise((resolve, reject) => {
+          const id = crypto.randomUUID();
+          const handler = (e) => {
+            if (e.data.id !== id) return;
+            this.wasmWorker.removeEventListener("message", handler);
+            if (e.data.type === "ERROR") reject(new Error(e.data.error));
+            else resolve(e.data);
+          };
+          this.wasmWorker.addEventListener("message", handler);
+          this.wasmWorker.postMessage({ id, type, payload });
+        });
+      }
+
+      async switchModel(catalogEntry) {
+        this.webllmModelF16 = catalogEntry.webllmF16;
+        this.webllmModelF32 = catalogEntry.webllmF32;
+        this.wasmModelId = catalogEntry.wasmId;
+
+        if (this.backend === "webllm-webgpu" && this.engine) {
+          const gpu = await this.probeWebGPU();
+          await this.engine.reload(gpu.hasF16 ? this.webllmModelF16 : this.webllmModelF32);
+          return this;
+        }
+        if (this.wasmWorker) {
+          this.wasmWorker.terminate();
+          this.wasmWorker = null;
+        }
+        this.initPromise = null;
+        return this.init();
+      }
+
+      async chat(messages, options = { temperature: 0.3, max_tokens: 300, jsonMode: false }) {
+        await this.init();
+        if (this.backend === "webllm-webgpu") {
+          const res = await this.engine.chat.completions.create({
+            messages,
+            temperature: options.temperature ?? 0.3,
+            max_tokens: options.max_tokens ?? 300,
+            ...(options.jsonMode ? { response_format: { type: "json_object" } } : {}),
+          });
+          return res.choices[0].message.content;
+        }
+        const res = await this._postToWasmWorker("GENERATE", {
+          messages,
+          temperature: options.temperature ?? 0.3,
+          max_tokens: options.max_tokens ?? 300,
+        });
+        return res.text;
+      }
+
+      async generateQuizQuestion(topic, difficulty = "medium") {
+        const messages = [
+          {
+            role: "system",
+            content: 'You are a quiz generator. Return ONLY JSON matching: {"question":"...","explanation":"...","options":["A","B","C","D"],"correct_index":0}. No markdown.'
+          },
+          {
+            role: "user",
+            content: `Create one ${difficulty} multiple-choice question on "${topic}". Put explanation before correct_index (0 to 3).`
+          }
+        ];
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const raw = await this.chat(messages, {
+            temperature: attempt === 1 ? 0.3 : 0.1,
+            max_tokens: 320,
+            jsonMode: true,
+          });
+          try {
+            const cleaned = raw.replace(/```json|```/gi, "").trim();
+            const start = cleaned.indexOf("{");
+            const end = cleaned.lastIndexOf("}");
+            if (start === -1 || end === -1) throw new Error("No JSON object");
+            const parsed = JSON.parse(cleaned.slice(start, end + 1));
+            if (typeof parsed.question === "string" && Array.isArray(parsed.options) && parsed.options.length >= 2) {
+              parsed.correct_index = Number(parsed.correct_index) || 0;
+              return parsed;
+            }
+          } catch (e) {
+            console.warn(`Attempt ${attempt} parse failed:`, e);
+          }
+        }
+        throw new Error("Could not parse quiz question. Tap Generate to try again.");
+      }
+    }
+
+    const liveProgress = document.getElementById("live-progress");
+    const defaultCatalogId = isMobile ? "smollm2-360m" : "qwen25-05b";
+    let activeCatalogId = localStorage.getItem("selected_quiz_model") || defaultCatalogId;
+    let currentCatalog = MODEL_CATALOG.find((m) => m.id === activeCatalogId) || MODEL_CATALOG[0];
+
+    const quizAI = new UnifiedBrowserLLM({
+      webllmModelF16: currentCatalog.webllmF16,
+      webllmModelF32: currentCatalog.webllmF32,
+      wasmModelId: currentCatalog.wasmId,
+      onProgress: ({ backend, progress, text }) => {
+        liveProgress.style.display = "block";
+        liveProgress.textContent = `[${backend}] ${progress}% — ${text}`;
+        if (progress >= 100) {
+          setTimeout(() => {
+            liveProgress.style.display = "none";
+            refreshStorageUI();
+          }, 600);
+        }
+      },
+    });
+
+    async function refreshStorageUI() {
+      const coiPill = document.getElementById("coi-pill");
+      coiPill.textContent = window.crossOriginIsolated ? "COOP/COEP: Fast Multi-Thread" : "COOP/COEP: Single-Thread";
+      coiPill.style.color = window.crossOriginIsolated ? "#4ade80" : "#eab308";
+
+      const stats = await LLMStorageManager.getStorageStats();
+      const gpu = await quizAI.probeWebGPU();
+      const activeBackend = quizAI.backend || (gpu.supported ? "webllm-webgpu" : "transformers-wasm");
+
+      document.getElementById("storage-bar").style.width = `${Math.min(100, stats.percentUsed)}%`;
+      document.getElementById("storage-stats-text").textContent =
+        `${stats.usageMB} MB / ${stats.quotaMB} MB (${stats.percentUsed}%)`;
+      document.getElementById("active-engine-text").textContent =
+        `Engine: ${activeBackend === "webllm-webgpu" ? "WebLLM (WebGPU)" : "Transformers.js (WASM q4)"}`;
+
+      const persistPill = document.getElementById("persist-pill");
+      persistPill.textContent = stats.isPersisted ? "Storage: Persisted" : "Storage: Evictable";
+      persistPill.style.color = stats.isPersisted ? "#4ade80" : "#eab308";
+
+      const listEl = document.getElementById("model-list");
+      listEl.innerHTML = "";
+
+      for (const item of MODEL_CATALOG) {
+        const check = await LLMStorageManager.verifyModelOfflineReady(item, activeBackend, gpu.hasF16);
+        const isSelected = item.id === activeCatalogId;
+
+        const row = document.createElement("div");
+        row.className = `model-item ${isSelected ? "active" : ""}`;
+        const statusColor = check.ready ? "#4ade80" : "#9ca3af";
+        const statusLabel = check.ready
+          ? `Ready (${check.cachedShards}/${check.totalShards} shards)`
+          : `~${item.estSizeMB} MB download`;
+
+        row.innerHTML = `
+          <div>
+            <div style="font-size:13px; font-weight:600;">
+              ${item.label} ${isSelected ? '<span style="color:#38bdf8;">(Active)</span>' : ""}
+            </div>
+            <div style="font-size:11px; color:${statusColor}; margin-top:2px;">${statusLabel}</div>
+          </div>
+          <div class="row">
+            <button data-action="activate" data-id="${item.id}" class="${isSelected && check.ready ? "secondary" : ""}">
+              ${check.ready ? (isSelected ? "Loaded" : "Switch") : "Download"}
+            </button>
+            ${
+              check.cachedShards > 0
+                ? `<button data-action="delete" data-id="${item.id}" class="danger" style="padding:6px 10px;">Clear</button>`
+                : ""
+            }
+          </div>
+        `;
+        listEl.appendChild(row);
+      }
+    }
+
+    document.getElementById("model-list").addEventListener("click", async (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const { action, id } = btn.dataset;
+      const entry = MODEL_CATALOG.find((m) => m.id === id);
+      if (!entry) return;
+
+      if (action === "activate") {
+        btn.disabled = true;
+        activeCatalogId = entry.id;
+        localStorage.setItem("selected_quiz_model", entry.id);
+        liveProgress.style.display = "block";
+        liveProgress.textContent = `Loading ${entry.label}...`;
+        await acquireWakeLock();
+        try {
+          await quizAI.switchModel(entry);
+        } finally {
+          releaseWakeLock();
+        }
+        liveProgress.style.display = "none";
+        await refreshStorageUI();
+      }
+      if (action === "delete") {
+        btn.disabled = true;
+        btn.textContent = "...";
+        await LLMStorageManager.deleteModel(entry);
+        await refreshStorageUI();
+      }
+    });
+
+    document.getElementById("purge-all-btn").addEventListener("click", async () => {
+      await LLMStorageManager.clearAllModels();
+      await refreshStorageUI();
+    });
+
+    document.getElementById("generate-btn").addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      const topic = document.getElementById("quiz-topic").value.trim() || "General Science";
+      const difficulty = document.getElementById("quiz-difficulty").value;
+      const outBox = document.getElementById("quiz-output");
+      const qEl = document.getElementById("quiz-question");
+      const optsEl = document.getElementById("quiz-options");
+      const fbEl = document.getElementById("quiz-feedback");
+
+      btn.disabled = true;
+      btn.textContent = "Generating...";
+      fbEl.style.display = "none";
+
+      await acquireWakeLock();
+      try {
+        const quiz = await quizAI.generateQuizQuestion(topic, difficulty);
+        outBox.style.display = "block";
+        qEl.textContent = quiz.question;
+        optsEl.innerHTML = "";
+
+        quiz.options.forEach((optText, idx) => {
+          const optBtn = document.createElement("button");
+          optBtn.className = "option-btn";
+          optBtn.textContent = `${String.fromCharCode(65 + idx)}. ${optText}`;
+          optBtn.addEventListener("click", () => {
+            Array.from(optsEl.children).forEach((b, i) => {
+              b.disabled = true;
+              if (i === quiz.correct_index) b.classList.add("correct");
+            });
+            if (idx !== quiz.correct_index) optBtn.classList.add("wrong");
+            fbEl.style.display = "block";
+            fbEl.innerHTML = `<strong>${idx === quiz.correct_index ? "Correct!" : "Not quite."}</strong> ${quiz.explanation || ""}`;
+          });
+          optsEl.appendChild(optBtn);
+        });
+      } catch (err) {
+        outBox.style.display = "block";
+        qEl.textContent = `Error: ${err.message}`;
+        optsEl.innerHTML = "";
+      } finally {
+        releaseWakeLock();
+        btn.disabled = false;
+        btn.textContent = "Generate";
+        refreshStorageUI();
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      if ("serviceWorker" in navigator) {
+        try {
+          await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+        } catch {}
+      }
+      await refreshStorageUI();
+      await quizAI.init();
+      await refreshStorageUI();
+    });
+  </script>
+</body>
+</html>
+

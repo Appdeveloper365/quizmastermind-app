@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Terms of Use and End-User License Agreement for Quiz Mastermind." />
+  <title>Terms of Use & EULA — Quiz Mastermind</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1.25rem; line-height: 1.65; color: #1e293b; background: #fafafa; }
+    h1 { font-size: 1.8rem; color: #0f172a; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.25rem; color: #0f172a; margin-top: 1.8rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.35rem; }
+    h3 { font-size: 1.05rem; color: #334155; margin-top: 1.2rem; }
+    a { color: #4f46e5; text-decoration: none; font-weight: 500; }
+    a:hover { text-decoration: underline; }
+    code { background: #f1f5f9; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.88em; }
+    .box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 8px 8px 0; font-size: 0.95rem; }
+    .warn-box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: 0 8px 8px 0; font-size: 0.95rem; }
+    ul { padding-left: 1.4rem; }
+    li { margin: 0.4rem 0; }
+    .caps { text-transform: uppercase; font-size: 0.92em; letter-spacing: 0.02em; }
+    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; font-size: 0.85rem; color: #64748b; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="nav-links">
+    <a href="./">← Back to Quiz Mastermind</a>
+    <a href="about.html">About</a>
+    <a href="privacy-policy.html">Privacy Policy</a>
+    <a href="license.html">Legal Notices & License</a>
+  </div>
+
+  <h1>Terms of Use & End-User License Agreement (EULA)</h1>
+  <p><strong>Application:</strong> Quiz Mastermind | <strong>Developer:</strong> Appdeveloper365 | <strong>Effective Date:</strong> October 25, 2026</p>
+
+  <div class="box">
+    <strong>Executive Summary:</strong> Quiz Mastermind is a client-side, zero-backend trivia learning application. Questions are generated in real-time by probabilistic AI models. You connect your own AI accounts (OpenRouter, Hugging Face, Gemini, Groq, in-browser WebLLM, etc.) via "User-Pays" OAuth, API keys, or browser WebGPU. You are directly responsible for your own AI provider usage and token consumption. The application is provided "AS IS" with an aggregate liability cap of $50 USD.
+  </div>
+
+  <h2>1. Acceptance of Terms & Eligibility</h2>
+  <p>By downloading, accessing, browsing, installing, or executing Quiz Mastermind across Web (SPA/PWA) or Desktop (Tauri/Electron), you enter into a legally binding contract with Appdeveloper365 and agree to these Terms and our <a href="privacy-policy.html">Privacy Policy</a>. You must be at least 18 years old or the age of majority in your jurisdiction (or 13+ with active parental/guardian consent).</p>
+
+  <h2>2. Software License Grant & Restrictions</h2>
+  <p>We grant you a personal, revocable, non-exclusive, non-transferable license to use Quiz Mastermind for personal, non-commercial educational and entertainment purposes. You may not decompile, reverse engineer, disassemble, resell, re-host, frame, or redistribute the Application as a public service or commercial API without prior written authorization.</p>
+
+  <h2>3. "Bring-Your-Own-Account" (BYOA) & Third-Party AI Providers</h2>
+  <p>The Application routes inference requests directly from your device to third-party AI inference providers chosen by you (such as OpenRouter, Hugging Face, Google Gemini, Groq, Pollinations, xAI, Puter, or localhost runtimes):</p>
+  <ul>
+    <li><strong>Direct Provider Relationship:</strong> Your connection to third-party inference providers is governed exclusively by their respective Terms of Service and Privacy Policies.</li>
+    <li><strong>Financial & Token Consumption Liability:</strong> All API charges, token consumption, quota depletion, or subscriptions are billed directly by that provider to your account.</li>
+    <li><strong>Runaway Agent Loops Disclaimer:</strong> In autonomous tool-calling or multi-turn agent loops (<code>runAgentLoop</code>), models may trigger recursive completions. APPDEVELOPER365 SHALL NOT BE LIABLE FOR ANY UNINTENDED OR RUNAWAY TOKEN CHARGES OR USAGE OVERAGES INCURRED ON YOUR THIRD-PARTY ACCOUNTS. You are solely responsible for setting spending limits on your provider accounts.</li>
+    <li><strong>Acceptable Use Compliance:</strong> You must strictly abide by the Acceptable Use Policies of OpenRouter, Hugging Face, Anthropic, OpenAI, Meta, and all underlying model creators.</li>
+  </ul>
+
+  <h2>4. AI Output & Autonomous Tool-Calling Disclaimers</h2>
+  <div class="warn-box">
+    <strong>AI Output Warning:</strong> All quiz questions, answer choices, scoring validations, and explanations are generated dynamically by probabilistic Large Language Models (LLMs). LLMs are subject to "hallucinations" and may generate statements that are factually inaccurate, biased, outdated, or incomplete. 
+  </div>
+  <ul>
+    <li><strong>No Professional Advice:</strong> Quiz Mastermind is an entertainment and informal learning tool. Outputs do NOT constitute academic certification, medical, legal, financial, or safety advice.</li>
+    <li><strong>Tool-Calling Risk Assumption:</strong> You assume all operational risks associated with autonomous model-directed tool execution (e.g. retrieving trivia archives or querying local data structures).</li>
+  </ul>
+
+  <h2>5. User Content & Intellectual Property Ownership</h2>
+  <p>You retain full ownership of the topics and prompts you submit. To the fullest extent permitted by applicable law and third-party provider terms, you retain ownership of the trivia output generated for your sessions. Appdeveloper365 retains all intellectual property rights in the Application software code, design, branding, and assets.</p>
+
+  <h2>6. Disclaimer of Warranties</h2>
+  <p class="caps">THE APPLICATION AND ALL CONTENT ARE PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, ACCURACY, AND NON-INFRINGEMENT. APPDEVELOPER365 DOES NOT WARRANT THAT THE APP WILL BE UNINTERRUPTED, BUG-FREE, OR COMPATIBLE WITH ALL PLATFORMS.</p>
+
+  <h2>7. Limitation of Liability</h2>
+  <p class="caps">TO THE MAXIMUM EXTENT PERMITTED BY LAW, APPDEVELOPER365 SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, NOR FOR LOSS OF PROFITS, DATA, TOKENS, OR REPUTATION. OUR TOTAL AGGREGATE LIABILITY ARISING OUT OF OR RELATING TO THE APP SHALL NOT EXCEED FIFTY UNITED STATES DOLLARS ($50.00 USD).</p>
+
+  <h2>8. Dispute Resolution, Mandatory Arbitration & Class Action Waiver</h2>
+  <p>Any dispute arising under this Agreement shall first be submitted to informal resolution for thirty (30) days by contacting <code>appdeveloper365@gmail.com</code>. Unresolved disputes shall be resolved exclusively through final and binding individual arbitration administered by the American Arbitration Association (AAA) under Delaware law. YOU WAIVE ANY RIGHT TO COMMENCE OR PARTICIPATE IN ANY CLASS ACTION OR REPRESENTATIVE LAWSUIT.</p>
+
+  <h2>9. Contact & Inquiries</h2>
+  <p>For inquiries or legal notices, contact: <a href="mailto:appdeveloper365@gmail.com">appdeveloper365@gmail.com</a>.</p>
+
+  <footer>
+    <div class="nav-links">
+      <a href="./">Quiz Mastermind</a> ·
+      <a href="about.html">About</a> ·
+      <a href="privacy-policy.html">Privacy Policy</a> ·
+      <a href="terms.html">Terms of Use</a> ·
+      <a href="license.html">Legal Notices & License</a>
+    </div>
+    <p style="margin-top:0.75rem">© 2026 Appdeveloper365. All Rights Reserved.</p>
+  </footer>
+</body>
+</html>
